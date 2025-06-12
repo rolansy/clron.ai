@@ -60,6 +60,14 @@ app.post('/api/chat', async (req, res) => {
       });
     }
     
+    console.log("Sending to Anthropic API:", JSON.stringify({
+      model: "claude-3-sonnet-20240229",
+      messages: [{ role: "user", content }],
+      max_tokens: 4096,
+      temperature: 0.7,
+      stream: true
+    }, null, 2));
+    
     // Make the request to Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -77,6 +85,15 @@ app.post('/api/chat', async (req, res) => {
         stream: true
       })
     });
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Anthropic API error:", errorData);
+      return res.status(response.status).json({ 
+        error: 'Error from Anthropic API',
+        details: errorData
+      });
+    }
     
     // Set up headers for SSE
     res.setHeader('Content-Type', 'text/event-stream');
