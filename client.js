@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
+    // Update the sendMessage function with better error handling and retry logic
     async function sendMessage() {
         const message = chatInput.value.trim();
         
@@ -135,24 +136,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 const base64Data = currentImageData.split(',')[1];
                 const mimeType = currentImageType || 'image/jpeg';
                 
+                // Check size before sending
+                const estimatedSize = Math.ceil(base64Data.length * 0.75);
+                if (estimatedSize > 5 * 1024 * 1024) {
+                    throw new Error('Image is too large (over 5MB). Please try a smaller image.');
+                }
+                
                 requestData.image = {
                     data: base64Data,
                     type: mimeType
                 };
-                
-                console.log("Sending image with type:", mimeType);
             }
             
-            // Call our backend proxy
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            // Check if the response is ok
+            let retries = 0;
+            const maxRetries = 2;
+            let response;
+            
+            while (retries <= maxRetries) {
+                try {
+                    response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    if (response.ok) break;
+                    
+                    // If it's a 429 (rate limit) or 5xx (server error), retry
+                    if (response.status === 429 || response.status >= 500) {
+                        retries++;
+                        if (retries <= maxRetries) {
+                            const waitTime = retries * 2000; // Exponential backoff
+                            await new Promise(resolve => setTimeout(resolve, waitTime));
+                            continue;
+                        }
+                    }
+                    
+                    // For other errors, don't retry
+                    break;
+                } catch (error) {
+                    retries++;
+                    if (retries <= maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+            
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Server error: ${response.status} - ${errorText}`);
@@ -203,7 +236,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Error:', error);
-            addMessage('bot', 'Sorry, there was an error processing your request: ' + error.message);
+            
+            try {
+                chatMessages.removeChild(loadingElement);
+            } catch (e) {
+                // Already removed, ignore
+            }
+            
+            addMessage('bot', `Sorry, there was an error processing your request: ${error.message}`);
         }
     }
 
