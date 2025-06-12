@@ -70,6 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (files.length > 0) {
             const file = files[0];
             if (file.type.startsWith('image/')) {
+                // Limit file size to 5MB (Anthropic has a size limit)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Image is too large. Please upload an image under 5MB.');
+                    return;
+                }
+                
                 currentImageType = file.type;
                 
                 const reader = new FileReader();
@@ -125,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const requestData = { message };
             
             if (currentImageData) {
+                // Extract base64 data by removing the data URL prefix
                 const base64Data = currentImageData.split(',')[1];
                 const mimeType = currentImageType || 'image/jpeg';
                 
@@ -132,8 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: base64Data,
                     type: mimeType
                 };
+                
+                console.log("Sending image with type:", mimeType);
             }
             
+            // Call our backend proxy
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -142,18 +152,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(requestData)
             });
 
+            // Check if the response is ok
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
+            // Clear the current image after sending
             currentImageData = null;
             currentImageType = null;
             updateImageIndicator();
 
+            // Remove loading indicator
             chatMessages.removeChild(loadingElement);
             
+            // Create a new message element for the response
             const botMessageElement = document.createElement('div');
             botMessageElement.classList.add('chat-message', 'bot');
             chatMessages.appendChild(botMessageElement);
             
             let accumulatedText = '';
             
+            // Handle the stream response
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             
@@ -177,13 +197,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             renderMarkdown(botMessageElement, accumulatedText);
                         }
                     } catch (e) {
-                        console.error('Error parsing SSE:', e);
+                        console.error('Error parsing SSE:', e, 'Line:', line);
                     }
                 }
             }
         } catch (error) {
             console.error('Error:', error);
-            addMessage('bot', 'Sorry, there was an error processing your request.');
+            addMessage('bot', 'Sorry, there was an error processing your request: ' + error.message);
         }
     }
 
