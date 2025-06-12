@@ -73,20 +73,17 @@ app.post('/api/chat', async (req, res) => {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
-      model: "claude-3-sonnet-20240229",
-      messages: [
-        {
-        role: "system",
-        content: "You are a funny, chill assistant who uses slang when the user does. Be cool, casual, and match the user's tone. Don't be overly cautious or formal."
-        },
-        {
-        role: "user",
-        content: content
-        }
-      ],
-      max_tokens: 4096,
-      temperature: 1.0,
-      stream: true
+        model: "claude-3-sonnet-20240229",
+        system: "You are a funny, chill assistant who uses slang when the user does. Be cool, casual, and match the user's tone. Don't be overly cautious or formal.",
+        messages: [
+          {
+            role: "user",
+            content: content
+          }
+        ],
+        max_tokens: 4096,
+        temperature: 1.0,
+        stream: true
       })
     });
     
