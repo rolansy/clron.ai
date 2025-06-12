@@ -64,7 +64,7 @@ app.post('/api/chat', async (req, res) => {
       model: "claude-3-sonnet-20240229",
       messages: [{ role: "user", content }],
       max_tokens: 4096,
-      temperature: 0.7,
+      temperature: 1.0,
       stream: true
     }, null, 2));
     
@@ -73,16 +73,20 @@ app.post('/api/chat', async (req, res) => {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
-        model: "claude-3-sonnet-20240229",
-        messages: [
-          {
-            role: "user",
-            content: content
-          }
-        ],
-        max_tokens: 4096,
-        temperature: 0.7,
-        stream: true
+      model: "claude-3-sonnet-20240229",
+      messages: [
+        {
+        role: "system",
+        content: "You are a funny, chill assistant who uses slang when the user does. Be cool, casual, and match the user's tone. Don't be overly cautious or formal."
+        },
+        {
+        role: "user",
+        content: content
+        }
+      ],
+      max_tokens: 4096,
+      temperature: 1.0,
+      stream: true
       })
     });
     
