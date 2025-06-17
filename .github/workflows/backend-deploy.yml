@@ -1,0 +1,37 @@
+# .github/workflows/backend-deploy.yml
+name: Deploy Backend to Cloud Run
+'on':
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Set up Google Cloud SDK
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: clron-2
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+          
+      # Build and push container
+      - name: Build and push container
+        run: |
+          cd backend
+          gcloud builds submit --tag gcr.io/clron-2/clron-backend
+          
+      # Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy clron-backend \
+            --image gcr.io/clron-2/clron-backend \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --set-env-vars="ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},FIREBASE_STORAGE_BUCKET=clron-2.appspot.com"
