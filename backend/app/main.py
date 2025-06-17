@@ -29,13 +29,20 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configure CORS
+# Configure CORS - Fix to allow Firebase hosting domains
+origins = [
+    "https://clron-2.web.app",
+    "https://clron-2.firebaseapp.com",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://clron-2.web.app", "https://clron-2.firebaseapp.com", "http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # Add this line to expose headers
 )
 
 # Include routers
