@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
-import { sendMessage, uploadImage, getChatMessages } from '../services/api';
+import { sendMessage, uploadImage, getChatMessages, streamMessage } from '../services/api';
 
 const ChatBox = ({ user, chatId, onChatIdChange }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const endMessageRef = useRef(null);
   
   // Load chat history when chat ID changes
   useEffect(() => {
@@ -26,57 +27,101 @@ const ChatBox = ({ user, chatId, onChatIdChange }) => {
     }
   }, [user, chatId]);
   
-  const handleSendMessage = async (text, imageData, imageFile) => {
-    if ((!text || text.trim() === '') && !imageData) return;
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    endMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  const handleSendMessage = async (message, imageData = null, imageFile = null) => {
+    if (!message.trim() && !imageData) return;
+    
+    setLoading(true);
     
     try {
-      setLoading(true);
-      
-      // Add user message to state immediately
+      // Add user message to the chat
       const userMessage = {
-        id: `temp-${Date.now()}`,
-        content: text,
+        content: message,
         role: 'user',
         timestamp: new Date(),
-        ...(imageData && { image_url: imageData })
+        image_url: null
       };
       
+      // Add to messages list
       setMessages(prev => [...prev, userMessage]);
       
-      let response;
-      
-      // If we have an image file, use the file upload endpoint
-      if (imageFile) {
-        response = await uploadImage(text, imageFile, chatId);
-      } else {
-        // Otherwise use the regular JSON endpoint
-        response = await sendMessage(text, imageData, chatId);
-      }
-      
-      // Update chat ID if it's a new chat
-      if (response.chat_id && (!chatId || chatId !== response.chat_id)) {
-        onChatIdChange(response.chat_id);
-      }
-      
-      // Add assistant message to state
-      const assistantMessage = {
-        id: `response-${Date.now()}`,
-        content: response.content,
+      // Create placeholder for AI response
+      const aiResponsePlaceholder = {
+        content: '',
         role: 'assistant',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isStreaming: true
       };
       
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, aiResponsePlaceholder]);
+      
+      // Scroll to bottom
+      scrollToBottom();
+      
+      // Stream the response
+      await streamMessage(
+        message, 
+        imageData, 
+        chatId, 
+        null,
+        // Handle content chunks
+        (contentChunk) => {
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            
+            if (lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+              lastMessage.content += contentChunk;
+            }
+            
+            return newMessages;
+          });
+          
+          scrollToBottom();
+        },
+        // Handle completion
+        (newChatId) => {
+          // Update chat ID if needed
+          if (newChatId && newChatId !== chatId) {
+            if (onChatIdChange) {
+              onChatIdChange(newChatId);
+            }
+          }
+          
+          // Mark streaming as complete
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            
+            if (lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+              lastMessage.isStreaming = false;
+            }
+            
+            return newMessages;
+          });
+        }
+      );
       
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessages(prev => {
+        // Remove the placeholder message if there was an error
+        if (prev[prev.length - 1].isStreaming) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
+      
       // Add error message
       setMessages(prev => [
         ...prev, 
         {
-          id: `error-${Date.now()}`,
           content: `Error: ${error.message}`,
-          role: 'assistant',
+          role: 'system',
           timestamp: new Date(),
           isError: true
         }
@@ -90,6 +135,7 @@ const ChatBox = ({ user, chatId, onChatIdChange }) => {
     <div className="flex flex-col h-full">
       <div className="flex-grow overflow-hidden">
         <MessageList messages={messages} />
+        <div ref={endMessageRef} />
       </div>
       <ChatInput onSendMessage={handleSendMessage} isLoading={loading} />
     </div>
