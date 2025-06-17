@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "clron-2"
+  },
+  "targets": {
+    "clron-2": {
+      "hosting": {
+        "clron-frontend": [
+          "clron-2"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
