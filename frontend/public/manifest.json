@@ -1,4 +1,5 @@
-{"short_name": "AI Chatbot",
+{
+  "short_name": "AI Chatbot",
   "name": "AI Chatbot with Claude and Firebase",
   "icons": [
     {
