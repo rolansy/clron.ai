@@ -1,11 +1,16 @@
 # Environment variables
 .env
-.env.example
+.env.*
+!.env.example
 **/.env
+**/.env.*
+!**/.env.example
 
 # Firebase credentials
 firebase-credentials.json
 **/firebase-credentials.json
+*-credentials.json
+**/*-credentials.json
 
 # Dependencies
 /node_modules
