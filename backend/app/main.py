@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import logging
+import os
 from pathlib import Path
 
 from app.routers import chat
@@ -16,6 +17,10 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+logger.info(f"ANTHROPIC_API_KEY set: {bool(os.environ.get('ANTHROPIC_API_KEY'))}")
+logger.info(f"FIREBASE_STORAGE_BUCKET set: {bool(os.environ.get('FIREBASE_STORAGE_BUCKET'))}")
+logger.info(f"FIREBASE_CREDENTIALS_PATH set: {bool(os.environ.get('FIREBASE_CREDENTIALS_PATH'))}")
 
 # Initialize FastAPI app
 app = FastAPI(
