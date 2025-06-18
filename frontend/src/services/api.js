@@ -1,7 +1,7 @@
-// Update the API_URL to conditionally use the production URL when deployed
+// Update the API_URL to use the deployed backend
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://clron-backend-dot-clron-2.uc.r.appspot.com/api'
-  : process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  ? 'https://clron-backend-production.up.railway.app/api'
+  : 'http://localhost:8000/api';
 
 const getToken = async () => {
   try {
