@@ -34,7 +34,8 @@ origins = [
     "https://clron-2.web.app",
     "https://clron-2.firebaseapp.com",
     "http://localhost:3000",
-    "https://clron-backend-dot-clron-2.uc.r.appspot.com"
+    "https://clron-backend-production.up.railway.app",
+    # Add any other domains that might access your API
 ]
 
 app.add_middleware(
