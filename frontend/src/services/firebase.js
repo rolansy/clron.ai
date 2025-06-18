@@ -4,7 +4,10 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  connectAuthEmulator, // Add this for local testing
+  setPersistence,       // Move these imports up here
+  browserLocalPersistence
 } from 'firebase/auth';
 import { 
   getFirestore,
@@ -37,14 +40,36 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// IMPORTANT: Enable persistence to improve login performance
+setPersistence(auth, browserLocalPersistence).catch(error => {
+  console.error("Error setting persistence:", error);
+});
+
 // Auth functions
 export const signInWithGoogle = async () => {
   try {
+    // Force re-authentication every time to avoid stale sessions
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
     const result = await signInWithPopup(auth, googleProvider);
+    
+    // Preemptively fetch the token to warm up the connection
+    await result.user.getIdToken();
+    
     return result.user;
   } catch (error) {
     console.error("Error signing in with Google", error);
-    throw error;
+    
+    // Provide more specific error messages
+    if (error.code === 'auth/popup-closed-by-user') {
+      throw new Error("Sign-in was cancelled. Please try again.");
+    } else if (error.code === 'auth/network-request-failed') {
+      throw new Error("Network error. Check your internet connection.");
+    } else {
+      throw error;
+    }
   }
 };
 
