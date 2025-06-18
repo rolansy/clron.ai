@@ -42,10 +42,12 @@ const Auth = ({ onUserChange }) => {
     }
   };
   
+  // Improve the loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-12">
+      <div className="flex flex-col items-center justify-center h-12 gap-2">
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+        <p className="text-xs text-secondary-500">Connecting to Google...</p>
       </div>
     );
   }
