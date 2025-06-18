@@ -9,9 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app code
 COPY . .
 
-# Print environment variables for debugging
-RUN echo "Checking environment setup"
-RUN python -c "import os; print(f'ANTHROPIC_API_KEY set: {bool(os.environ.get(\"ANTHROPIC_API_KEY\"))}')"
+# Add support for Railway's PORT environment variable
+ENV PORT=8000
 
 # Expose port
 EXPOSE 8000
